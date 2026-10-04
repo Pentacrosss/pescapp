@@ -1,0 +1,65 @@
+# pescAPP · prototipo Momento 2
+# docker compose up --build  ->  http://localhost:8000
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pescapp}
+      POSTGRES_USER: ${POSTGRES_USER:-pescapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pescapp}
+      TZ: America/Guayaquil
+      PGTZ: America/Guayaquil
+    ports:
+      - "127.0.0.1:${PG_PUERTO_HOST:-5433}:5432"
+    volumes:
+      - pg_datos:/var/lib/postgresql/data
+      # Scripts disponibles dentro del contenedor para la defensa:
+      #   docker compose exec postgres psql -U pescapp -d pescapp -f /sql/script_final_postgres.sql
+      - ./db/postgres:/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pescapp} -d ${POSTGRES_DB:-pescapp}"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  mongo:
+    image: mongo:7
+    environment:
+      TZ: America/Guayaquil
+    ports:
+      - "127.0.0.1:${MONGO_PUERTO_HOST:-27018}:27017"
+    volumes:
+      - mongo_datos:/data/db
+      # docker compose exec mongo mongosh pescapp /mongo/script_final_mongo.js
+      - ./db/mongo:/mongo:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  web:
+    build: .
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-cambie-esta-clave-solo-para-demo}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,testserver}
+      POSTGRES_DB: ${POSTGRES_DB:-pescapp}
+      POSTGRES_USER: ${POSTGRES_USER:-pescapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pescapp}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: ${MONGO_DB:-pescapp}
+      TZ: America/Guayaquil
+    ports:
+      - "${WEB_PUERTO:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+
+volumes:
+  pg_datos:
+  mongo_datos:

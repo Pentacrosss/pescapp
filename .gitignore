@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Configuración local (use .env.example como plantilla)
+.env
+
+# Django
+staticfiles/
+*.log
+
+# Bases de datos locales sin Docker (binarios portables y datos)
+.bd_local/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

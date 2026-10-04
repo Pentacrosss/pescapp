@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Saldos de clientes{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Saldos de clientes</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R5 · vista <code>v_saldo_cliente</code>: vendido no anulado − cobrado</span>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>Cliente</th><th>Identificación</th><th>Tipo</th><th class="text-end">Vendido</th><th class="text-end">Cobrado</th><th class="text-end">Saldo pendiente</th><th></th></tr></thead>
+  <tbody>
+  {% for s in saldos %}
+    <tr>
+      <td>{{ s.nombre }}</td><td>{{ s.identificacion }}</td><td>{{ s.tipo }}</td>
+      <td class="text-end">{{ s.total_vendido|dinero }}</td><td class="text-end">{{ s.total_cobrado|dinero }}</td>
+      <td class="text-end fw-bold">{{ s.saldo_pendiente|dinero }}</td>
+      <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'saldo_cliente' s.id_cliente %}">Detalle</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

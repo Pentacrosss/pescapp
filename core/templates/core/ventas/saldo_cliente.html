@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Saldo de {{ saldo.nombre }}{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>{{ saldo.nombre }}</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R5 · saldo con el valor oficial del momento</span>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card card-body text-center"><div class="small text-body-secondary">Total vendido</div><div class="fs-4">{{ saldo.total_vendido|dinero }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body text-center"><div class="small text-body-secondary">Total cobrado</div><div class="fs-4">{{ saldo.total_cobrado|dinero }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body text-center border-warning"><div class="small text-body-secondary">Saldo pendiente</div><div class="fs-3 fw-bold">{{ saldo.saldo_pendiente|dinero }}</div></div></div>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>Venta</th><th>Fecha</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for v in ventas %}
+    <tr><td><a href="{% url 'ventas_detalle' v.id_venta %}">#{{ v.id_venta }}</a></td><td>{{ v.fecha }}</td>
+      <td class="text-end">{{ v.total|dinero }}</td><td class="text-end">{{ v.cobrado|dinero }}</td><td class="text-end fw-semibold">{{ v.saldo|dinero }}</td>
+      <td><span class="badge text-bg-{{ v.estado|color_estado }}">{{ v.estado }}</span></td></tr>
+  {% empty %}
+    <tr><td colspan="6" class="text-body-secondary">Sin ventas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<a href="{% url 'saldos_clientes' %}">← Todos los clientes</a>
+{% endblock %}

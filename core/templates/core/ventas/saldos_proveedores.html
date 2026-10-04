@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Saldos de proveedores{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Saldos de proveedores</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R5 · vista <code>v_saldo_proveedor</code>: comprado no anulado − pagado</span>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>Proveedor</th><th>Identificación</th><th class="text-end">Comprado</th><th class="text-end">Pagado</th><th class="text-end">Saldo pendiente</th><th></th></tr></thead>
+  <tbody>
+  {% for s in saldos %}
+    <tr>
+      <td>{{ s.nombre }}</td><td>{{ s.identificacion }}</td>
+      <td class="text-end">{{ s.total_comprado|dinero }}</td><td class="text-end">{{ s.total_pagado|dinero }}</td>
+      <td class="text-end fw-bold">{{ s.saldo_pendiente|dinero }}</td>
+      <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'saldo_proveedor' s.id_proveedor %}">Detalle</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Validación{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Validación</h1>
+  <span class="badge badge-mongo">MongoDB</span>→<span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R3 · una recepción validada se convierte en compra oficial, todo o nada</span>
+</div>
+
+<div class="card card-body mb-3 small">
+  <ol class="mb-0">
+    <li>Lee el documento en MongoDB (<code>findOne({_id})</code>).</li>
+    <li><code>BEGIN</code> → <code>INSERT compra</code> (<code>uuid_recepcion = _id</code>, fecha local de <code>capturado_en</code>, <code>pendiente_pago</code>) → <code>INSERT detalle_compra</code> por línea (<code>ROUND(peso × precio, 2)</code>) → <code>UPDATE compra.total = Σ subtotales</code> → <code>COMMIT</code>.</li>
+    <li>Marca el documento como <code>validada</code> con <code>id_compra</code> y <code>validado_en</code> (<code>updateOne</code> con filtro <code>estado: "pendiente"</code>).</li>
+    <li>Si PostgreSQL rechaza (UNIQUE de <code>uuid_recepcion</code> o trigger de día cerrado) hay <code>ROLLBACK</code>: la contabilidad no cambia.</li>
+  </ol>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><strong>Pendientes de validar</strong> <span class="badge text-bg-warning">{{ pendientes|length }}</span></div>
+  <div class="table-responsive">
+  <table class="table table-sm table-hover mb-0">
+    <thead class="table-light"><tr><th>UUID</th><th>Capturado</th><th>Proveedor</th><th>Especies</th><th class="text-end">Estimado</th><th></th></tr></thead>
+    <tbody>
+    {% for d in pendientes %}
+      <tr>
+        <td><a class="uuid" href="{% url 'muelle_detalle' d|item:'_id' %}">{{ d|item:"_id"|corto }}…</a></td>
+        <td class="small">{{ d.capturado_en|date:"d/m/Y H:i" }}</td>
+        <td class="small">{{ proveedores|item:d.id_proveedor|default:d.id_proveedor }}</td>
+        <td class="small">{{ d|especies }}</td>
+        <td class="text-end">{{ d|total_estimado|dinero }}</td>
+        <td class="text-end">
+          <form method="post" action="{% url 'validacion_validar' d|item:'_id' %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-primary btn-sm py-0">Validar</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6" class="text-body-secondary">No hay recepciones pendientes.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><strong>Validadas recientemente</strong> <span class="small text-body-secondary">— para la demostración de doble contabilización</span></div>
+  <div class="table-responsive">
+  <table class="table table-sm table-hover mb-0">
+    <thead class="table-light"><tr><th>UUID</th><th>Capturado</th><th>Proveedor</th><th>Compra oficial</th><th></th></tr></thead>
+    <tbody>
+    {% for d in validadas %}
+      <tr>
+        <td><a class="uuid" href="{% url 'muelle_detalle' d|item:'_id' %}">{{ d|item:"_id"|corto }}…</a></td>
+        <td class="small">{{ d.capturado_en|date:"d/m/Y H:i" }}</td>
+        <td class="small">{{ proveedores|item:d.id_proveedor|default:d.id_proveedor }}</td>
+        <td><a href="{% url 'compras_detalle' d.id_compra %}">#{{ d.id_compra }}</a> <span class="badge badge-pg">PostgreSQL</span></td>
+        <td class="text-end text-nowrap">
+          <form method="post" action="{% url 'validacion_forzar' d|item:'_id' %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-outline-warning btn-sm py-0" title="Intenta crear la compra otra vez saltándose la verificación de MongoDB">Forzar revalidación (demo)</button>
+          </form>
+          <form method="post" action="{% url 'validacion_desfasar' d|item:'_id' %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-outline-secondary btn-sm py-0" title="Deja el documento en 'pendiente' aunque su compra exista">Simular desfase</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="text-body-secondary">Aún no hay recepciones validadas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

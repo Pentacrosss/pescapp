@@ -1,0 +1,109 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Inicio{% endblock %} · pescAPP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{% static 'core/app.css' %}" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-xl navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="{% url 'inicio' %}">pescAPP</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Menú">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Muelle <span class="badge badge-mongo badge-motor">MongoDB</span></a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'muelle_captura' %}">Captura en muelle (Create)</a></li>
+            <li><a class="dropdown-item" href="{% url 'muelle_lista' %}">Recepciones (Read · Update · Delete)</a></li>
+            <li><a class="dropdown-item" href="{% url 'muelle_pendientes' %}">Pendientes del día</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'muelle_esquema' %}">Validador e índices</a></li>
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'validacion' %}">Validación <span class="badge badge-mongo badge-motor">MongoDB</span>→<span class="badge badge-pg badge-motor">PostgreSQL</span></a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Catálogo <span class="badge badge-pg badge-motor">PostgreSQL</span></a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'catalogo_productos' %}">Productos (CRUD)</a></li>
+            <li><a class="dropdown-item" href="{% url 'catalogo_proveedores' %}">Proveedores</a></li>
+            <li><a class="dropdown-item" href="{% url 'catalogo_clientes' %}">Clientes</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Ventas y saldos <span class="badge badge-pg badge-motor">PostgreSQL</span></a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'ventas_nueva' %}">Registrar venta</a></li>
+            <li><a class="dropdown-item" href="{% url 'ventas_lista' %}">Ventas y cobros</a></li>
+            <li><a class="dropdown-item" href="{% url 'compras_lista' %}">Compras y pagos</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'saldos_clientes' %}">Saldos de clientes</a></li>
+            <li><a class="dropdown-item" href="{% url 'saldos_proveedores' %}">Saldos de proveedores</a></li>
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cierre' %}">Cierre diario <span class="badge badge-pg badge-motor">PostgreSQL</span></a>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'bitacora' %}">Bitácora</a></li>
+      </ul>
+      <form method="post" action="{% url 'cambiar_usuario' %}" class="d-flex align-items-center gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <label for="sel-usuario" class="text-light small text-nowrap">Usuario actual</label>
+        <select id="sel-usuario" name="id_usuario" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for u in usuarios %}
+            <option value="{{ u.id_usuario }}" {% if usuario_actual and u.id_usuario == usuario_actual.id_usuario %}selected{% endif %}>{{ u.nombre }} ({{ u.rol }})</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<main class="container-fluid py-3 px-lg-4">
+  {% for m in messages %}
+    <div class="alert alert-{{ m.tags }} alert-dismissible fade show" role="alert">
+      {{ m }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+  {% endfor %}
+
+  {# Panel de la acción anterior (POST -> redirección) o del POST actual #}
+  {% if accion_previa %}
+    {% include "core/_panel.html" with titulo=accion_previa.titulo lista=accion_previa.consultas destacado=True %}
+  {% elif request.method == "POST" and consultas_pagina %}
+    {% include "core/_panel.html" with titulo=accion_pagina lista=consultas_pagina destacado=True %}
+  {% endif %}
+  {% block panel_js %}<div id="panel-js"></div>{% endblock %}
+
+  {% block contenido %}{% endblock %}
+
+  {# Panel de las lecturas de esta página #}
+  {% if consultas_pagina and request.method != "POST" %}
+    <div class="mt-4">
+      {% include "core/_panel.html" with titulo=accion_pagina lista=consultas_pagina destacado=False %}
+    </div>
+    <a id="ir-panel" class="btn btn-dark btn-sm shadow" href="#panel-pagina">▼ Consulta ejecutada ({{ consultas_pagina|length }})</a>
+  {% endif %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'core/panel.js' %}"></script>
+<script>
+  // Tras "Reiniciar datos de demo" se vacían las colas locales del navegador
+  if (new URLSearchParams(location.search).get("reiniciado") === "1") {
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith("pescapp_")).forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* sin localStorage */ }
+  }
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

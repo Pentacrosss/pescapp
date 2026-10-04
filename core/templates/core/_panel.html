@@ -1,0 +1,33 @@
+{# F · Panel "Consulta ejecutada": motor, sentencia/comando, parámetros, tiempo y resultado o error del motor #}
+<section class="panel-consultas card mb-3 {% if destacado %}border-primary shadow-sm{% endif %}" id="{% if destacado %}panel-accion{% else %}panel-pagina{% endif %}">
+  <div class="card-header d-flex flex-wrap align-items-center gap-2 {% if destacado %}bg-primary-subtle{% endif %}">
+    <strong>Consulta ejecutada</strong>
+    <span class="text-body-secondary">· {{ titulo|default:"Lectura de la página" }}</span>
+    <span class="ms-auto small text-body-secondary">{{ lista|length }} operación(es)</span>
+  </div>
+  <div class="card-body p-2">
+    {% for c in lista %}
+      <div class="consulta {% if c.motor == 'PostgreSQL' %}motor-pg{% else %}motor-mongo{% endif %} {% if c.error %}consulta-error{% endif %}">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+          <span class="badge {% if c.motor == 'PostgreSQL' %}badge-pg{% else %}badge-mongo{% endif %}">{{ c.motor }}</span>
+          <strong class="small">{{ c.operacion }}</strong>
+          <span class="small text-body-secondary ms-auto">{{ c.tiempo_ms }} ms</span>
+        </div>
+        <pre class="sentencia">{{ c.sentencia }}</pre>
+        {% if c.parametros %}
+          <div class="small"><span class="text-body-secondary">Parámetros:</span> <code>{{ c.parametros }}</code></div>
+        {% endif %}
+        {% if c.sentencia_final %}
+          <details class="small"><summary>Sentencia enviada al motor (parámetros enlazados)</summary><pre class="sentencia">{{ c.sentencia_final }}</pre></details>
+        {% endif %}
+        {% if c.error %}
+          <pre class="error-motor">{{ c.error }}</pre>
+        {% else %}
+          <div class="resultado">→ {{ c.resultado }}</div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="small text-body-secondary">Sin operaciones.</div>
+    {% endfor %}
+  </div>
+</section>

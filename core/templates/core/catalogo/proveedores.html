@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% block titulo %}Proveedores{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Proveedores</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><strong>Nuevo proveedor</strong></div>
+      <form method="post" class="card-body">
+        {% csrf_token %}
+        <label class="form-label small mb-0">Nombre</label>
+        <input name="nombre" class="form-control form-control-sm mb-2" maxlength="140" required>
+        <label class="form-label small mb-0">Identificación (cédula o RUC)</label>
+        <input name="identificacion" class="form-control form-control-sm mb-2" maxlength="13" required>
+        <label class="form-label small mb-0">Teléfono</label>
+        <input name="telefono" class="form-control form-control-sm mb-2" maxlength="20">
+        <button class="btn btn-primary btn-sm">Crear</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="table-responsive">
+    <table class="table table-sm table-hover bg-white">
+      <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Identificación</th><th>Teléfono</th><th></th></tr></thead>
+      <tbody>
+      {% for p in proveedores %}
+        <tr><td>{{ p.id_proveedor }}</td><td>{{ p.nombre }}</td><td>{{ p.identificacion }}</td><td>{{ p.telefono|default:"" }}</td>
+          <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'saldo_proveedor' p.id_proveedor %}">Saldo</a></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

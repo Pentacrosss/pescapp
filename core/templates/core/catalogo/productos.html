@@ -1,0 +1,60 @@
+{% extends "core/base.html" %}
+{% block titulo %}Productos{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Productos</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">CRUD con SQL explícito · UNIQUE (id_especie, presentacion) · FK desde los detalles</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><strong>CREATE · Nuevo producto</strong> <code class="small">INSERT ... RETURNING</code></div>
+      <form method="post" class="card-body">
+        {% csrf_token %}
+        <label class="form-label small mb-0">Especie</label>
+        <select name="id_especie" class="form-select form-select-sm mb-2" required>
+          {% for e in especies %}<option value="{{ e.id_especie }}">{{ e.nombre_comun }} ({{ e.categoria }})</option>{% endfor %}
+        </select>
+        <label class="form-label small mb-0">Presentación</label>
+        <input name="presentacion" class="form-control form-control-sm mb-2" placeholder="en rodajas" maxlength="40" required>
+        <label class="form-label small mb-0">Unidad</label>
+        <input name="unidad" class="form-control form-control-sm mb-2" value="kg" maxlength="10" required>
+        <button class="btn btn-primary btn-sm">Crear producto</button>
+        <div class="small text-body-secondary mt-2">Pruebe repetir «Dorado + entero»: lo rechaza el UNIQUE del motor.</div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><strong>READ · Productos</strong> <span class="small text-body-secondary">JOIN especie + veces en compras y ventas</span></div>
+      <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light"><tr><th>ID</th><th>Especie</th><th>Categoría</th><th>Presentación</th><th>Unidad</th><th class="text-end">En compras</th><th class="text-end">En ventas</th><th></th></tr></thead>
+        <tbody>
+        {% for p in productos %}
+          <tr>
+            <td>{{ p.id_producto }}</td>
+            <td>{{ p.especie }}</td>
+            <td class="small">{{ p.categoria }}</td>
+            <td>{{ p.presentacion }}</td>
+            <td>{{ p.unidad }}</td>
+            <td class="text-end">{{ p.veces_comprado }}</td>
+            <td class="text-end">{{ p.veces_vendido }}</td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'catalogo_producto_editar' p.id_producto %}">Editar</a>
+              <form method="post" action="{% url 'catalogo_producto_eliminar' p.id_producto %}" class="d-inline" onsubmit="return confirm('¿Eliminar el producto #{{ p.id_producto }}?');">
+                {% csrf_token %}
+                <button class="btn btn-outline-danger btn-sm py-0">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

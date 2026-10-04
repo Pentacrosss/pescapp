@@ -1,0 +1,74 @@
+{% extends "core/base.html" %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>pescAPP · Prototipo Momento 2</h1>
+  <span class="text-body-secondary">Comercializadora pesquera: del muelle sin señal al dato contable oficial</span>
+</div>
+
+<div class="flujo mb-4">
+  <div class="paso mongo">
+    <div class="small text-uppercase opacity-75">Muelle · provisional</div>
+    <div class="fs-5 fw-bold">MongoDB</div>
+    <div class="small">recepciones_muelle · _id = UUID del dispositivo · atributos variables por especie (R1, R2)</div>
+    <a class="btn btn-light btn-sm mt-2" href="{% url 'muelle_captura' %}">Capturar recepción</a>
+  </div>
+  <div class="flecha">→</div>
+  <div class="paso integ">
+    <div class="small text-uppercase opacity-75">Integración</div>
+    <div class="fs-5 fw-bold">Validación</div>
+    <div class="small">Recepción validada → compra en UNA transacción · uuid_recepcion UNIQUE (R3)</div>
+    <a class="btn btn-light btn-sm mt-2" href="{% url 'validacion' %}">Validar recepciones</a>
+  </div>
+  <div class="flecha">→</div>
+  <div class="paso pg">
+    <div class="small text-uppercase opacity-75">Núcleo · oficial</div>
+    <div class="fs-5 fw-bold">PostgreSQL</div>
+    <div class="small">12 tablas · ventas y cobros (R4) · saldos (R5) · cierre diario con trigger (R6)</div>
+    <a class="btn btn-light btn-sm mt-2" href="{% url 'cierre' %}">Cierre diario</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><span class="badge badge-mongo">MongoDB</span> recepciones_muelle</div>
+      <div class="card-body">
+        <table class="table table-sm mb-2">
+          <tr><th>Pendientes</th><td class="text-end">{{ conteo_mongo.pendiente }}</td></tr>
+          <tr><th>Validadas</th><td class="text-end">{{ conteo_mongo.validada }}</td></tr>
+          <tr><th>Rechazadas</th><td class="text-end">{{ conteo_mongo.rechazada }}</td></tr>
+          <tr class="table-light"><th>Total de documentos</th><td class="text-end fw-bold">{{ conteo_mongo.total }}</td></tr>
+        </table>
+        <a href="{% url 'muelle_pendientes' %}">Pendientes de hoy: {{ pendientes_hoy }}</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><span class="badge badge-pg">PostgreSQL</span> filas por tabla (12 tablas)</div>
+      <div class="card-body">
+        <div class="row row-cols-2 row-cols-md-3 g-2 small">
+          {% for tabla, total in conteo_pg.items %}
+            <div class="col"><div class="border rounded px-2 py-1 d-flex justify-content-between"><code>{{ tabla }}</code><strong>{{ total }}</strong></div></div>
+          {% endfor %}
+        </div>
+        <div class="small mt-2 text-body-secondary">Último día cerrado: {{ ultima_cerrada|default:"ninguno" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card h-100 border-danger-subtle">
+      <div class="card-header">Grabación del video</div>
+      <div class="card-body small">
+        <p>Restaura ambas bases al estado inicial (30 recepciones, cierres de los días −5 a −2, día −1 abierto, 8 pendientes hoy) y vacía las colas locales del navegador.</p>
+        <form method="post" action="{% url 'reiniciar_demo' %}" onsubmit="return confirm('¿Reiniciar los datos de demo en PostgreSQL y MongoDB?');">
+          {% csrf_token %}
+          <button class="btn btn-outline-danger btn-sm">Reiniciar datos de demo</button>
+        </form>
+        <p class="mt-2 mb-0 text-body-secondary">Equivale a <code>python manage.py reset_demo</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

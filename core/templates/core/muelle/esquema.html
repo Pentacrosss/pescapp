@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Validador e índices{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Validador e índices de recepciones_muelle</h1>
+  <span class="badge badge-mongo">MongoDB</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+        <strong>Validador $jsonSchema</strong>
+        <span class="badge text-bg-light">validationLevel: {{ info.nivel }}</span>
+        <span class="badge text-bg-light">validationAction: {{ info.accion }}</span>
+      </div>
+      <div class="card-body p-2">
+        <p class="small mb-2">Exige <code>_id</code> con formato UUID, <code>id_usuario</code>/<code>id_proveedor</code> enteros, <code>capturado_en</code> fecha,
+          <code>estado</code> en el enum y al menos una línea con <code>peso_kg</code> y <code>precio_kg</code> &gt; 0.
+          <strong><code>atributos</code> es un objeto sin esquema fijo</strong>: ahí está la flexibilidad (R2).</p>
+        <pre class="json-doc mb-0">{{ info.validador|mongosh }}</pre>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header"><strong>Índices</strong> <code class="small">getIndexes()</code></div>
+      <ul class="list-group list-group-flush">
+        {% for i in info.indices %}
+          <li class="list-group-item small"><code>{{ i.nombre }}</code> → <code>{{ i.claves|mongosh }}</code></li>
+        {% endfor %}
+      </ul>
+      <div class="card-body small text-body-secondary">
+        <div><code>estado_1_capturado_en_1</code>: «Pendientes del día» (igualdad + rango).</div>
+        <div><code>id_proveedor_1_capturado_en_-1</code>: historial por proveedor, lo más reciente primero.</div>
+      </div>
+    </div>
+    <div class="card border-danger-subtle">
+      <div class="card-header"><strong>Probar el validador (demo)</strong></div>
+      <form method="post" action="{% url 'muelle_invalido_demo' %}" class="card-body">
+        {% csrf_token %}
+        <p class="small">Intenta insertar un documento con <code>estado: "aprobada"</code> (fuera del enum) y <code>peso_kg: -5</code>. El motor lo rechaza con <em>Document failed validation</em>.</p>
+        <button class="btn btn-outline-danger btn-sm">Insertar documento inválido</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

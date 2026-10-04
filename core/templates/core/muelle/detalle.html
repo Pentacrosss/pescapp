@@ -1,0 +1,151 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Recepción {{ doc|item:"_id"|corto }}{% endblock %}
+{% block contenido %}
+{% with uuid=doc|item:"_id" %}
+<div class="titulo-seccion mb-3">
+  <h1>Recepción <span class="uuid">{{ uuid }}</span></h1>
+  <span class="badge badge-mongo">MongoDB</span>
+  <span class="badge text-bg-{{ doc.estado|color_estado }} fs-6">{{ doc.estado }}</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card mb-3">
+      <div class="card-header"><strong>Datos de la recepción</strong> <span class="small text-body-secondary">READ · findOne({_id})</span></div>
+      <div class="card-body">
+        <div class="row small g-2">
+          <div class="col-md-6"><span class="text-body-secondary">Proveedor:</span> {{ proveedores|item:doc.id_proveedor|default:doc.id_proveedor }} (id {{ doc.id_proveedor }})</div>
+          <div class="col-md-6"><span class="text-body-secondary">Capturado por:</span> {{ usuarios_mapa|item:doc.id_usuario|default:doc.id_usuario }}</div>
+          <div class="col-md-6"><span class="text-body-secondary">Capturado en (dispositivo):</span> {{ doc.capturado_en|date:"d/m/Y H:i:s" }}</div>
+          <div class="col-md-6"><span class="text-body-secondary">Sincronizado en (servidor):</span> {{ doc.sincronizado_en|date:"d/m/Y H:i:s" }}</div>
+          <div class="col-md-6"><span class="text-body-secondary">Reenvíos recibidos:</span> <strong>{{ doc.reenvios }}</strong></div>
+          {% if doc.validado_en %}<div class="col-md-6"><span class="text-body-secondary">Validado en:</span> {{ doc.validado_en|date:"d/m/Y H:i:s" }}</div>{% endif %}
+          {% if doc.id_compra %}<div class="col-md-6"><span class="text-body-secondary">Compra oficial:</span> <a href="{% url 'compras_detalle' doc.id_compra %}">#{{ doc.id_compra }}</a> <span class="badge badge-pg">PostgreSQL</span></div>{% endif %}
+          {% if doc.motivo_rechazo %}<div class="col-12 text-danger"><span class="text-body-secondary">Motivo de rechazo:</span> {{ doc.motivo_rechazo }}</div>{% endif %}
+          {% if doc.observaciones %}<div class="col-12"><span class="text-body-secondary">Observaciones:</span> {{ doc.observaciones }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><strong>Líneas</strong> <span class="small text-body-secondary">— cada especie trae atributos distintos (R2)</span></div>
+      <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>#</th><th>Producto</th><th class="text-end">Peso kg</th><th class="text-end">USD/kg</th><th class="text-end">Subtotal</th><th>atributos</th></tr></thead>
+        <tbody>
+        {% for l in doc.lineas %}
+          {% with p=productos|item:l.id_producto %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td><strong>{{ l.especie }}</strong> <span class="small text-body-secondary">{{ p.presentacion }} (id {{ l.id_producto }})</span></td>
+            <td class="text-end">{{ l.peso_kg|num:2 }}</td>
+            <td class="text-end">{{ l.precio_kg|num:2 }}</td>
+            <td class="text-end">{{ l|subtotal|dinero }}</td>
+            <td>{% for k, v in l.atributos.items %}<span class="badge text-bg-light border atributo me-1">{{ k }}: {{ v }}</span>{% empty %}<span class="small text-body-secondary">—</span>{% endfor %}</td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+        </tbody>
+        <tfoot><tr class="table-light"><th colspan="4" class="text-end">Total estimado</th><th class="text-end">{{ doc|total_estimado|dinero }}</th><th></th></tr></tfoot>
+      </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><strong>Documento tal como está en MongoDB</strong></div>
+      <div class="card-body p-2"><pre class="json-doc mb-0">{{ doc|mongosh }}</pre></div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    {% if doc.estado == "pendiente" %}
+    <!-- UPDATE · corregir línea -->
+    <div class="card mb-3">
+      <div class="card-header"><strong>UPDATE · Corregir peso o precio</strong> <code class="small">$set</code></div>
+      <form method="post" action="{% url 'muelle_corregir_linea' uuid %}" class="card-body">
+        {% csrf_token %}
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-label small mb-0">Línea</label>
+            <select name="indice" class="form-select form-select-sm">
+              {% for l in doc.lineas %}<option value="{{ forloop.counter0 }}">{{ forloop.counter }} · {{ l.especie }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-4"><label class="form-label small mb-0">Nuevo peso kg</label><input name="peso_kg" type="number" step="any" class="form-control form-control-sm"></div>
+          <div class="col-4"><label class="form-label small mb-0">Nuevo USD/kg</label><input name="precio_kg" type="number" step="any" class="form-control form-control-sm"></div>
+        </div>
+        <button class="btn btn-primary btn-sm mt-2">Guardar corrección</button>
+      </form>
+    </div>
+
+    <!-- UPDATE · R2 · agregar atributo -->
+    <div class="card mb-3">
+      <div class="card-header"><strong>UPDATE · R2 · Agregar atributo nuevo</strong> <span class="small text-body-secondary">sin cambiar el esquema</span></div>
+      <form method="post" action="{% url 'muelle_agregar_atributo' uuid %}" class="card-body">
+        {% csrf_token %}
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-label small mb-0">Línea</label>
+            <select name="indice" class="form-select form-select-sm">
+              {% for l in doc.lineas %}<option value="{{ forloop.counter0 }}">{{ forloop.counter }} · {{ l.especie }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-4"><label class="form-label small mb-0">Clave</label><input name="clave" value="lote" class="form-control form-control-sm" required></div>
+          <div class="col-4"><label class="form-label small mb-0">Valor</label><input name="valor" value="L-0457" class="form-control form-control-sm" required></div>
+        </div>
+        <button class="btn btn-primary btn-sm mt-2">Agregar atributo</button>
+      </form>
+    </div>
+
+    <!-- UPDATE · rechazar -->
+    <div class="card mb-3 border-danger-subtle">
+      <div class="card-header"><strong>UPDATE · Rechazar</strong> <span class="small text-body-secondary">solo MongoDB; la contabilidad no se toca</span></div>
+      <form method="post" action="{% url 'muelle_rechazar' uuid %}" class="card-body">
+        {% csrf_token %}
+        <input name="motivo" class="form-control form-control-sm" placeholder="Producto fuera de la cadena de frío" required>
+        <button class="btn btn-outline-danger btn-sm mt-2">Rechazar recepción</button>
+      </form>
+    </div>
+
+    <!-- R3 · validar -->
+    <div class="card mb-3 border-primary-subtle">
+      <div class="card-header"><strong>R3 · Validar</strong> <span class="badge badge-mongo">MongoDB</span>→<span class="badge badge-pg">PostgreSQL</span></div>
+      <form method="post" action="{% url 'validacion_validar' uuid %}" class="card-body">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'muelle_detalle' uuid %}">
+        <p class="small mb-2">Crea la compra oficial y sus detalles en una sola transacción PostgreSQL; luego marca el documento como validada.</p>
+        <button class="btn btn-primary btn-sm">Validar y crear compra</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="alert alert-secondary small">
+      {% if doc.estado == "validada" %}
+        Recepción validada: ya existe la compra oficial #{{ doc.id_compra }}. No admite correcciones ni eliminación.
+      {% else %}
+        Recepción rechazada: no se contabilizó. Solo puede eliminarse (captura errónea).
+      {% endif %}
+    </div>
+    {% if doc.estado == "validada" %}
+    <form method="post" action="{% url 'validacion_forzar' uuid %}" class="mb-3">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'muelle_detalle' uuid %}">
+      <button class="btn btn-outline-warning btn-sm">Forzar revalidación (demo)</button>
+      <div class="small text-body-secondary">Salta la verificación de MongoDB: ¿quién impide el duplicado? PostgreSQL.</div>
+    </form>
+    {% endif %}
+    {% endif %}
+
+    <!-- DELETE -->
+    <div class="card border-danger">
+      <div class="card-header"><strong>DELETE · Eliminar recepción</strong></div>
+      <form method="post" action="{% url 'muelle_eliminar' uuid %}" class="card-body" onsubmit="return confirm('¿Eliminar esta recepción de MongoDB?');">
+        {% csrf_token %}
+        <p class="small mb-2">Solo <code>pendiente</code> o <code>rechazada</code> (captura errónea). Filtro: <code>{_id, estado: {$in: ["pendiente","rechazada"]}}</code>.</p>
+        <button class="btn btn-danger btn-sm">Eliminar</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

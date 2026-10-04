@@ -1,0 +1,26 @@
+{% if plan %}
+<div class="card mb-3 border-success">
+  <div class="card-header d-flex flex-wrap align-items-center gap-2">
+    <strong>Plan de consulta</strong> <span class="badge badge-mongo">explain("executionStats")</span>
+    {% if plan.usa_indice %}
+      <span class="badge text-bg-success">IXSCAN · usa índice {{ plan.indice }}</span>
+    {% else %}
+      <span class="badge text-bg-danger">COLLSCAN · recorre toda la colección</span>
+    {% endif %}
+  </div>
+  <div class="card-body small">
+    <div class="mb-1"><span class="text-body-secondary">Filtro:</span> <code>{{ plan.filtro }}</code> · <span class="text-body-secondary">orden:</span> <code>{{ plan.orden }}</code></div>
+    <div class="mb-1"><span class="text-body-secondary">Etapas del plan ganador:</span> <strong>{{ plan.etapas_texto }}</strong></div>
+    <div class="row row-cols-2 row-cols-md-5 g-2 mt-1">
+      <div class="col"><div class="border rounded p-1 text-center">Devueltos<br><strong>{{ plan.n_devueltos }}</strong></div></div>
+      <div class="col"><div class="border rounded p-1 text-center">Claves examinadas<br><strong>{{ plan.claves_examinadas }}</strong></div></div>
+      <div class="col"><div class="border rounded p-1 text-center">Docs examinados<br><strong>{{ plan.docs_examinados }}</strong></div></div>
+      <div class="col"><div class="border rounded p-1 text-center">Tiempo<br><strong>{{ plan.tiempo_ms }} ms</strong></div></div>
+      <div class="col"><div class="border rounded p-1 text-center">Planes rechazados<br><strong>{{ plan.planes_rechazados }}</strong></div></div>
+    </div>
+    {% if plan.limites %}
+      <details class="mt-2"><summary>Límites del índice (indexBounds)</summary><pre class="json-doc mb-0">{{ plan.limites|pprint }}</pre></details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,101 @@
+{% extends "core/base.html" %}
+{% block titulo %}Registrar venta{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Registrar venta</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R4 · una transacción: venta + detalle_venta + total = Σ subtotales + cobro inicial</span>
+</div>
+
+<form method="post" class="card" id="form-venta">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="row g-2 mb-3">
+      <div class="col-md-5">
+        <label class="form-label small mb-0">Cliente</label>
+        <select name="id_cliente" class="form-select form-select-sm" required>
+          {% for c in clientes %}<option value="{{ c.id_cliente }}" {% if valores.id_cliente == c.id_cliente|stringformat:"s" %}selected{% endif %}>{{ c.nombre }} ({{ c.tipo }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small mb-0">Fecha</label>
+        <input type="date" name="fecha" value="{{ valores.fecha }}" class="form-control form-control-sm" required>
+      </div>
+    </div>
+
+    <table class="table table-sm align-middle">
+      <thead class="table-light"><tr><th>Producto</th><th style="width:9rem">Peso kg</th><th style="width:9rem">USD/kg</th><th class="text-end" style="width:9rem">Subtotal</th><th style="width:3rem"></th></tr></thead>
+      <tbody id="lineas-venta"></tbody>
+      <tfoot>
+        <tr><td colspan="3"><button type="button" class="btn btn-outline-primary btn-sm" id="btn-linea">+ Agregar línea</button></td>
+            <td class="text-end fw-bold" id="total-estimado">$0.00</td><td></td></tr>
+      </tfoot>
+    </table>
+
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small mb-0">Cobro inicial (opcional, puede ser parcial)</label>
+        <input type="number" step="0.01" min="0" name="cobro_inicial" value="{{ valores.cobro_inicial }}" class="form-control form-control-sm" placeholder="0.00">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Método</label>
+        <select name="metodo" class="form-select form-select-sm">
+          {% for m in metodos %}<option value="{{ m }}" {% if valores.metodo == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary">Registrar venta</button>
+      </div>
+    </div>
+    <div class="small text-body-secondary mt-2">El total oficial lo calcula PostgreSQL (<code>UPDATE venta SET total = Σ detalle_venta.subtotal</code>). Si el cobro inicial supera el total, el trigger lo rechaza y se revierte toda la venta.</div>
+  </div>
+</form>
+
+<template id="tpl-fila">
+  <tr>
+    <td><select name="id_producto" class="form-select form-select-sm sel-producto">
+      {% for p in productos %}<option value="{{ p.id_producto }}">{{ p.especie }} · {{ p.presentacion }}</option>{% endfor %}
+    </select></td>
+    <td><input type="number" step="0.01" min="0.01" name="peso_kg" class="form-control form-control-sm peso" required></td>
+    <td><input type="number" step="0.01" min="0.01" name="precio_kg" class="form-control form-control-sm precio" required></td>
+    <td class="text-end subtotal">$0.00</td>
+    <td><button type="button" class="btn btn-outline-danger btn-sm py-0 quitar">✕</button></td>
+  </tr>
+</template>
+{{ lineas_previas|json_script:"lineas-previas" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const cuerpo = document.getElementById("lineas-venta");
+  const formato = n => "$" + n.toFixed(2);
+  function recalcular() {
+    let total = 0;
+    cuerpo.querySelectorAll("tr").forEach(tr => {
+      const sub = Math.round((Number(tr.querySelector(".peso").value) || 0) * (Number(tr.querySelector(".precio").value) || 0) * 100) / 100;
+      tr.querySelector(".subtotal").textContent = formato(sub);
+      total += sub;
+    });
+    document.getElementById("total-estimado").textContent = formato(total);
+  }
+  function agregar(previa) {
+    const fila = document.getElementById("tpl-fila").content.firstElementChild.cloneNode(true);
+    if (previa) {
+      fila.querySelector(".sel-producto").value = previa.id_producto;
+      fila.querySelector(".peso").value = previa.peso_kg;
+      fila.querySelector(".precio").value = previa.precio_kg;
+    }
+    fila.querySelectorAll("input").forEach(i => i.addEventListener("input", recalcular));
+    fila.querySelector(".quitar").addEventListener("click", () => {
+      if (cuerpo.children.length > 1) { fila.remove(); recalcular(); }
+    });
+    cuerpo.appendChild(fila);
+    recalcular();
+  }
+  document.getElementById("btn-linea").addEventListener("click", () => agregar());
+  const previas = JSON.parse(document.getElementById("lineas-previas").textContent);
+  if (previas.length) previas.forEach(agregar); else agregar();
+})();
+</script>
+{% endblock %}

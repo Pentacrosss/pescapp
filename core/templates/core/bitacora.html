@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+{% block titulo %}Bitácora{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Bitácora</h1>
+  <span class="text-body-secondary">Últimas 50 operaciones enviadas a los motores (la más reciente primero)</span>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white align-top">
+  <thead class="table-light">
+    <tr><th>Momento</th><th>Motor</th><th>Acción</th><th>Operación</th><th>Sentencia / comando</th><th class="text-end">ms</th><th>Resultado o error del motor</th></tr>
+  </thead>
+  <tbody>
+  {% for c in operaciones %}
+    <tr class="{% if c.error %}table-danger{% endif %}">
+      <td class="small text-nowrap">{{ c.momento|date:"d/m H:i:s" }}<div class="text-body-secondary">{{ c.ruta }}</div></td>
+      <td><span class="badge {% if c.motor == 'PostgreSQL' %}badge-pg{% else %}badge-mongo{% endif %}">{{ c.motor }}</span></td>
+      <td class="small">{{ c.accion }}</td>
+      <td class="small fw-semibold">{{ c.operacion }}</td>
+      <td><details><summary class="small">ver</summary><pre class="small mb-0" style="max-width:40rem;white-space:pre-wrap">{{ c.sentencia }}{% if c.parametros %}
+-- parámetros: {{ c.parametros }}{% endif %}</pre></details></td>
+      <td class="text-end small">{{ c.tiempo_ms }}</td>
+      <td class="small" style="max-width:28rem;word-break:break-word">{% if c.error %}<span class="text-danger">{{ c.error|truncatechars:400 }}</span>{% else %}{{ c.resultado|truncatechars:200 }}{% endif %}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="text-body-secondary">Aún no hay operaciones registradas en este proceso.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

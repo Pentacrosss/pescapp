@@ -1,0 +1,134 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block titulo %}Captura en muelle{% endblock %}
+{% block panel_js %}{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Captura en muelle</h1>
+  <span class="badge badge-mongo">MongoDB</span>
+  <span class="text-body-secondary">CREATE · R1 · R2 — simula el teléfono del auxiliar de muelle</span>
+</div>
+
+<div class="row g-3">
+  <!-- ===================== Formulario (dispositivo) ===================== -->
+  <div class="col-xl-7">
+    <form id="form-captura" class="card">
+      {% csrf_token %}
+      <div class="card-header d-flex flex-wrap align-items-center gap-3">
+        <strong>Nueva recepción</strong>
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="sin-senal">
+          <label class="form-check-label fw-semibold" for="sin-senal">Simular sin señal</label>
+        </div>
+        <span id="estado-conexion" class="badge text-bg-success">En línea</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label" for="id_proveedor">Proveedor</label>
+            <select id="id_proveedor" class="form-select" required>
+              {% for p in proveedores %}<option value="{{ p.id_proveedor }}">{{ p.nombre }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="id_usuario">Usuario que captura</label>
+            <select id="id_usuario" class="form-select" required>
+              {% for u in usuarios %}
+                <option value="{{ u.id_usuario }}" {% if u.rol == "auxiliar" %}selected{% endif %}>{{ u.nombre }} ({{ u.rol }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div id="lineas"></div>
+        <button type="button" id="btn-agregar-linea" class="btn btn-outline-success btn-sm mb-3">+ Agregar línea</button>
+
+        <div class="mb-3">
+          <label class="form-label" for="observaciones">Observaciones</label>
+          <input id="observaciones" class="form-control" placeholder="Dos gavetas con hielo insuficiente">
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <button type="submit" class="btn btn-success">Guardar recepción</button>
+          <span class="small text-body-secondary">El UUID se genera en el navegador con <code>crypto.randomUUID()</code> al guardar.</span>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================== Cola local y envíos ===================== -->
+  <div class="col-xl-5">
+    <div class="card mb-3 border-warning">
+      <div class="card-header d-flex align-items-center gap-2">
+        <strong>Cola sin conexión</strong> <span class="small text-body-secondary">(localStorage del dispositivo)</span>
+        <span id="contador-cola" class="badge text-bg-warning ms-auto">0</span>
+      </div>
+      <div class="card-body p-2">
+        <table class="table table-sm mb-2"><tbody id="tabla-cola"></tbody></table>
+        <div class="d-flex gap-2">
+          <button type="button" id="btn-sincronizar" class="btn btn-primary btn-sm">Sincronizar</button>
+          <button type="button" id="btn-vaciar-cola" class="btn btn-outline-secondary btn-sm">Vaciar cola</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <strong>Enviadas desde este dispositivo</strong>
+        <button type="button" id="btn-limpiar-enviadas" class="btn btn-link btn-sm ms-auto p-0">limpiar</button>
+      </div>
+      <div class="card-body p-2">
+        <table class="table table-sm mb-0"><tbody id="tabla-enviadas"></tbody></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><strong>Respuesta del servidor (upsert idempotente)</strong></div>
+      <div class="card-body p-2 small" id="resultado-servidor">
+        <div class="text-body-secondary">Documentos en la colección al abrir la pantalla: <strong>{{ total_documentos }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel "Consulta ejecutada" del último envío (lo dibuja panel.js) -->
+<div id="panel-js" class="mt-3"></div>
+
+<!-- Plantilla de una línea de la recepción -->
+<template id="tpl-linea">
+  <div class="linea card linea-captura mb-2">
+    <div class="card-body p-2">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <strong class="num-linea small">Línea</strong>
+        <span class="badge text-bg-light especie"></span>
+        <button type="button" class="btn btn-outline-danger btn-sm ms-auto btn-quitar">Quitar</button>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Producto</label>
+          <select class="form-select form-select-sm sel-producto" required></select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-0">Peso (kg)</label>
+          <input type="number" step="0.1" min="0.1" class="form-control form-control-sm peso" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-0">Precio (USD/kg)</label>
+          <input type="number" step="0.01" min="0.01" class="form-control form-control-sm precio" required>
+        </div>
+      </div>
+      <div class="mt-2">
+        <div class="small text-body-secondary mb-1">Atributos de la especie (plantilla) — se guardan en <code>lineas[i].atributos</code></div>
+        <div class="row g-2 atributos-plantilla"></div>
+        <div class="atributos-libres mt-2"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-1 btn-attr-libre">+ Agregar atributo libre</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+{{ datos_captura|json_script:"datos-captura" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'core/captura.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Compras{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Compras y pagos</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">Cada compra nace de una recepción validada (uuid_recepcion único)</span>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>#</th><th>Fecha</th><th>Proveedor</th><th>uuid_recepcion</th><th class="text-end">Total</th><th class="text-end">Pagado</th><th class="text-end">Saldo</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for c in compras %}
+    <tr>
+      <td>{{ c.id_compra }}</td><td>{{ c.fecha }}</td><td>{{ c.proveedor }}</td>
+      <td><a class="uuid" href="{% url 'muelle_detalle' c.uuid_recepcion %}">{{ c.uuid_recepcion|corto }}…</a></td>
+      <td class="text-end">{{ c.total|dinero }}</td><td class="text-end">{{ c.pagado|dinero }}</td>
+      <td class="text-end fw-semibold">{{ c.saldo|dinero }}</td>
+      <td><span class="badge text-bg-{{ c.estado|color_estado }}">{{ c.estado }}</span></td>
+      <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'compras_detalle' c.id_compra %}">Detalle</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9" class="text-body-secondary">Sin compras.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

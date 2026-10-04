@@ -1,0 +1,83 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>{{ titulo }}</h1>
+  <span class="badge badge-mongo">MongoDB</span>
+  <span class="text-body-secondary">READ · recepciones_muelle</span>
+  <a class="btn btn-success btn-sm ms-auto" href="{% url 'muelle_captura' %}">+ Capturar recepción</a>
+</div>
+
+{% if con_filtros %}
+<form method="get" class="card card-body mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-2">
+      <label class="form-label small mb-0">Estado</label>
+      <select name="estado" class="form-select form-select-sm">
+        <option value="">(todos)</option>
+        {% for e in estados %}<option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-0">Fecha de captura</label>
+      <input type="date" name="fecha" value="{{ filtros.fecha }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-0">Proveedor</label>
+      <select name="proveedor" class="form-select form-select-sm">
+        <option value="">(todos)</option>
+        {% for id, nombre in proveedores.items %}<option value="{{ id }}" {% if filtros.proveedor == id %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-0">Especie</label>
+      <select name="especie" class="form-select form-select-sm">
+        <option value="">(todas)</option>
+        {% for e in especies %}<option value="{{ e }}" {% if filtros.especie == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button class="btn btn-primary btn-sm">Filtrar</button>
+      <button class="btn btn-outline-success btn-sm" name="plan" value="1">Ver plan de consulta</button>
+      <a class="btn btn-link btn-sm" href="{% url 'muelle_lista' %}">Limpiar</a>
+    </div>
+  </div>
+  <div class="small text-body-secondary mt-2">Filtro enviado a MongoDB: <code>{{ comando }}</code></div>
+</form>
+{% else %}
+<div class="card card-body mb-3 small">
+  <div>Consulta: <code>db.recepciones_muelle.find({{ comando }}).sort({"capturado_en": 1})</code></div>
+  <div class="text-body-secondary">Igualdad en <code>estado</code> + rango en <code>capturado_en</code> → índice compuesto <code>{ estado: 1, capturado_en: 1 }</code>.</div>
+  <form method="get" class="mt-2"><button class="btn btn-outline-success btn-sm" name="plan" value="1">Ver plan de consulta</button></form>
+</div>
+{% endif %}
+
+{% include "core/muelle/_plan.html" %}
+
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light">
+    <tr><th>UUID</th><th>Capturado</th><th>Proveedor</th><th>Especies</th><th class="text-end">kg</th><th class="text-end">Estimado</th><th>Estado</th><th class="text-end">Reenvíos</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for d in recepciones %}
+    <tr>
+      <td><a class="uuid" href="{% url 'muelle_detalle' d|item:'_id' %}">{{ d|item:"_id"|corto }}…</a></td>
+      <td class="small">{{ d.capturado_en|date:"d/m/Y H:i" }}</td>
+      <td class="small">{{ proveedores|item:d.id_proveedor|default:d.id_proveedor }}</td>
+      <td class="small">{{ d|especies }}</td>
+      <td class="text-end">{{ d|total_kg|num:1 }}</td>
+      <td class="text-end">{{ d|total_estimado|dinero }}</td>
+      <td><span class="badge text-bg-{{ d.estado|color_estado }}">{{ d.estado }}</span></td>
+      <td class="text-end">{{ d.reenvios }}</td>
+      <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'muelle_detalle' d|item:'_id' %}">Detalle</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9" class="text-body-secondary">No hay recepciones con ese filtro.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="small text-body-secondary">{{ recepciones|length }} documento(s).</div>
+{% endblock %}

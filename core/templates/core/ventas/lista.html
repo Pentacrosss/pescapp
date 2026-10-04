@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Ventas{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Ventas y cobros</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <a class="btn btn-primary btn-sm ms-auto" href="{% url 'ventas_nueva' %}">+ Registrar venta</a>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>#</th><th>Fecha</th><th>Cliente</th><th class="text-end">Total</th><th class="text-end">Cobrado</th><th class="text-end">Saldo</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for v in ventas %}
+    <tr>
+      <td>{{ v.id_venta }}</td><td>{{ v.fecha }}</td><td>{{ v.cliente }}</td>
+      <td class="text-end">{{ v.total|dinero }}</td><td class="text-end">{{ v.cobrado|dinero }}</td>
+      <td class="text-end fw-semibold">{{ v.saldo|dinero }}</td>
+      <td><span class="badge text-bg-{{ v.estado|color_estado }}">{{ v.estado }}</span></td>
+      <td class="text-end"><a class="btn btn-outline-secondary btn-sm py-0" href="{% url 'ventas_detalle' v.id_venta %}">Detalle</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="text-body-secondary">Sin ventas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

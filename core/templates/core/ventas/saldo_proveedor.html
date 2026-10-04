@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Saldo de {{ saldo.nombre }}{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>{{ saldo.nombre }}</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">R5 · saldo con el valor oficial del momento</span>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card card-body text-center"><div class="small text-body-secondary">Total comprado</div><div class="fs-4">{{ saldo.total_comprado|dinero }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body text-center"><div class="small text-body-secondary">Total pagado</div><div class="fs-4">{{ saldo.total_pagado|dinero }}</div></div></div>
+  <div class="col-md-4"><div class="card card-body text-center border-warning"><div class="small text-body-secondary">Saldo pendiente</div><div class="fs-3 fw-bold">{{ saldo.saldo_pendiente|dinero }}</div></div></div>
+</div>
+<div class="table-responsive">
+<table class="table table-sm table-hover bg-white">
+  <thead class="table-light"><tr><th>Compra</th><th>Fecha</th><th>Recepción</th><th class="text-end">Total</th><th class="text-end">Pagado</th><th class="text-end">Saldo</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for c in compras %}
+    <tr><td><a href="{% url 'compras_detalle' c.id_compra %}">#{{ c.id_compra }}</a></td><td>{{ c.fecha }}</td>
+      <td><a class="uuid" href="{% url 'muelle_detalle' c.uuid_recepcion %}">{{ c.uuid_recepcion|corto }}…</a></td>
+      <td class="text-end">{{ c.total|dinero }}</td><td class="text-end">{{ c.pagado|dinero }}</td><td class="text-end fw-semibold">{{ c.saldo|dinero }}</td>
+      <td><span class="badge text-bg-{{ c.estado|color_estado }}">{{ c.estado }}</span></td></tr>
+  {% empty %}
+    <tr><td colspan="7" class="text-body-secondary">Sin compras.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<a href="{% url 'saldos_proveedores' %}">← Todos los proveedores</a>
+{% endblock %}

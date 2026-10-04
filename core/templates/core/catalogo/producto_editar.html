@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+{% block titulo %}Editar producto{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Editar producto #{{ producto.id_producto }}</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="text-body-secondary">UPDATE producto SET presentacion, unidad</span>
+</div>
+<div class="card" style="max-width: 32rem">
+  <form method="post" class="card-body">
+    {% csrf_token %}
+    <div class="mb-2"><span class="text-body-secondary small">Especie:</span> <strong>{{ producto.especie }}</strong></div>
+    <label class="form-label small mb-0">Presentación</label>
+    <input name="presentacion" class="form-control form-control-sm mb-2" value="{{ producto.presentacion }}" maxlength="40" required>
+    <label class="form-label small mb-0">Unidad</label>
+    <input name="unidad" class="form-control form-control-sm mb-3" value="{{ producto.unidad }}" maxlength="10" required>
+    <button class="btn btn-primary btn-sm">Guardar (UPDATE)</button>
+    <a class="btn btn-link btn-sm" href="{% url 'catalogo_productos' %}">Volver</a>
+  </form>
+</div>
+{% endblock %}

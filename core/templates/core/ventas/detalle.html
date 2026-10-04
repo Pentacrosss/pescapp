@@ -1,0 +1,69 @@
+{% extends "core/base.html" %}
+{% load pescapp_tags %}
+{% block titulo %}Venta #{{ venta.id_venta }}{% endblock %}
+{% block contenido %}
+<div class="titulo-seccion mb-3">
+  <h1>Venta #{{ venta.id_venta }}</h1>
+  <span class="badge badge-pg">PostgreSQL</span>
+  <span class="badge text-bg-{{ venta.estado|color_estado }} fs-6">{{ venta.estado }}</span>
+</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-body small row g-2">
+        <div class="col-md-4"><span class="text-body-secondary">Cliente:</span> <a href="{% url 'saldo_cliente' venta.id_cliente %}">{{ venta.cliente }}</a></div>
+        <div class="col-md-4"><span class="text-body-secondary">Fecha:</span> {{ venta.fecha }}</div>
+        <div class="col-md-4"><span class="text-body-secondary">Registró:</span> {{ venta.usuario }}</div>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><strong>detalle_venta</strong></div>
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>Producto</th><th class="text-end">Peso kg</th><th class="text-end">USD/kg</th><th class="text-end">Subtotal</th></tr></thead>
+        <tbody>
+        {% for d in detalle %}
+          <tr><td>{{ d.especie }} · {{ d.presentacion }}</td><td class="text-end">{{ d.peso_kg }}</td><td class="text-end">{{ d.precio_kg }}</td><td class="text-end">{{ d.subtotal|dinero }}</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-light"><th colspan="3" class="text-end">Total de la venta</th><th class="text-end">{{ venta.total|dinero }}</th></tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="alert {% if cuadre.cuadra %}alert-success{% else %}alert-danger{% endif %} small">
+      <strong>Cuadre (R4):</strong> venta.total = {{ cuadre.total|dinero }} · Σ detalle_venta.subtotal = {{ cuadre.suma_detalle|dinero }} →
+      {% if cuadre.cuadra %}<strong>cuadra</strong>{% else %}<strong>NO cuadra</strong>{% endif %}
+    </div>
+    <div class="card">
+      <div class="card-header"><strong>Cobros</strong></div>
+      <table class="table table-sm mb-0">
+        <thead class="table-light"><tr><th>#</th><th>Fecha</th><th>Método</th><th class="text-end">Monto</th></tr></thead>
+        <tbody>
+        {% for c in cobros %}<tr><td>{{ c.id_cobro }}</td><td>{{ c.fecha }}</td><td>{{ c.metodo }}</td><td class="text-end">{{ c.monto|dinero }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-body-secondary">Sin cobros.</td></tr>{% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><th colspan="3" class="text-end">Cobrado</th><th class="text-end">{{ venta.cobrado|dinero }}</th></tr>
+          <tr class="table-warning"><th colspan="3" class="text-end">Saldo pendiente</th><th class="text-end">{{ saldo|dinero }}</th></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><strong>Registrar cobro</strong></div>
+      <form method="post" action="{% url 'ventas_cobro' venta.id_venta %}" class="card-body">
+        {% csrf_token %}
+        <label class="form-label small mb-0">Fecha</label>
+        <input type="date" name="fecha" value="{{ hoy|date:'Y-m-d' }}" class="form-control form-control-sm mb-2" required>
+        <label class="form-label small mb-0">Monto (saldo: {{ saldo|dinero }})</label>
+        <input type="number" step="0.01" min="0.01" name="monto" class="form-control form-control-sm mb-2" required>
+        <label class="form-label small mb-0">Método</label>
+        <select name="metodo" class="form-select form-select-sm mb-2">{% for m in metodos %}<option>{{ m }}</option>{% endfor %}</select>
+        <button class="btn btn-primary btn-sm">Registrar cobro</button>
+        <div class="small text-body-secondary mt-2">Un monto mayor que el saldo lo rechaza el trigger <code>trg_cobro_saldo</code>.</div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
